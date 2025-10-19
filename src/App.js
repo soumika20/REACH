@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { Home, Edit, Menu, User, ChevronRight, MapPin, Phone, Video, Camera, Image, AlertCircle, Navigation, Heart, Cloud, CloudRain, Wind, Thermometer, Activity } from 'lucide-react';
+import { Home, Edit, Menu, User, ChevronRight, MapPin, Phone, Video, Camera, Image, AlertCircle, Navigation, Heart, Cloud, CloudRain, Wind, Thermometer, Activity, Wifi, WifiOff, Radio, Users } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
 // Fix for default marker icons in Leaflet
@@ -30,10 +30,205 @@ const App = () => {
   const [userLocation, setUserLocation] = useState({ lat: 12.9716, lng: 77.5946 }); // Default: Bangalore
   const [weather, setWeather] = useState(null);
   const [weatherAlerts, setWeatherAlerts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [meshStatus, setMeshStatus] = useState('disconnected'); // 'connected', 'disconnected', 'connecting'
+  const [meshPeers, setMeshPeers] = useState([]);
+  const [meshMessages, setMeshMessages] = useState([]);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [meshNode, setMeshNode] = useState(null);
 
   // Replace with your OpenWeatherMap API key
-  const WEATHER_API_KEY = 'bdfc1c82e963517b687aa18df647173f';
+  const WEATHER_API_KEY = 'YOUR_API_KEY_HERE';
+
+  // Mesh Network Manager
+  const MeshNetworkManager = useCallback(() => {
+    let ws = null;
+    let reconnectTimer = null;
+    let heartbeatTimer = null;
+
+    const connect = () => {
+      try {
+        // Try to connect to local Yggdrasil node
+        // In production, this would connect to your Yggdrasil service
+        ws = new WebSocket('ws://localhost:9001'); // Local Yggdrasil WebSocket
+        
+        ws.onopen = () => {
+          console.log('Mesh network connected');
+          setMeshStatus('connected');
+          
+          // Send initial handshake
+          const handshake = {
+            type: 'handshake',
+            peerId: generatePeerId(),
+            location: userLocation,
+            timestamp: Date.now()
+          };
+          ws.send(JSON.stringify(handshake));
+          
+          // Start heartbeat
+          heartbeatTimer = setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: 'heartbeat' }));
+            }
+          }, 30000);
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+            handleMeshMessage(message);
+          } catch (e) {
+            console.error('Failed to parse mesh message:', e);
+          }
+        };
+
+        ws.onerror = (error) => {
+          console.error('Mesh network error:', error);
+          setMeshStatus('disconnected');
+        };
+
+        ws.onclose = () => {
+          console.log('Mesh network disconnected');
+          setMeshStatus('disconnected');
+          clearInterval(heartbeatTimer);
+          
+          // Attempt to reconnect
+          reconnectTimer = setTimeout(() => {
+            if (!isOnline) { // Only reconnect if still offline
+              setMeshStatus('connecting');
+              connect();
+            }
+          }, 5000);
+        };
+      } catch (error) {
+        console.error('Failed to connect to mesh network:', error);
+        setMeshStatus('disconnected');
+        
+        // Simulate mesh network for demo purposes
+        simulateMeshNetwork();
+      }
+    };
+
+    const disconnect = () => {
+      if (ws) {
+        clearInterval(heartbeatTimer);
+        clearTimeout(reconnectTimer);
+        ws.close();
+      }
+    };
+
+    return { connect, disconnect };
+  }, [userLocation, isOnline]);
+
+  // Generate unique peer ID
+  const generatePeerId = () => {
+    return 'peer_' + Math.random().toString(36).substr(2, 9);
+  };
+
+  // Handle incoming mesh messages
+  const handleMeshMessage = (message) => {
+    switch (message.type) {
+      case 'peer_list':
+        setMeshPeers(message.peers || []);
+        break;
+      case 'emergency_broadcast':
+        setMeshMessages(prev => [...prev, message]);
+        // Show notification
+        if (Notification.permission === 'granted') {
+          new Notification('Emergency Alert via Mesh', {
+            body: message.content,
+            icon: '/emergency-icon.png'
+          });
+        }
+        break;
+      case 'resource_share':
+        // Update local resource list
+        console.log('Resource shared:', message.resource);
+        break;
+      case 'location_update':
+        // Update peer locations on map
+        setMeshPeers(prev => 
+          prev.map(p => p.id === message.peerId ? { ...p, location: message.location } : p)
+        );
+        break;
+      default:
+        console.log('Unknown mesh message type:', message.type);
+    }
+  };
+
+  // Simulate mesh network for demo
+  const simulateMeshNetwork = () => {
+    setMeshStatus('connected');
+    
+    // Simulate some nearby peers
+    const mockPeers = [
+      { id: 'peer_1', name: 'Emergency Responder 1', distance: 0.5, type: 'responder' },
+      { id: 'peer_2', name: 'Medical Team', distance: 1.2, type: 'medical' },
+      { id: 'peer_3', name: 'Volunteer', distance: 0.8, type: 'volunteer' }
+    ];
+    setMeshPeers(mockPeers);
+  };
+
+  // Broadcast emergency message over mesh
+  const broadcastEmergencyMesh = (message) => {
+    if (meshNode && meshNode.connect) {
+      const broadcast = {
+        type: 'emergency_broadcast',
+        content: message,
+        location: userLocation,
+        timestamp: Date.now(),
+        sender: generatePeerId()
+      };
+      
+      try {
+        // In production, this would send through Yggdrasil
+        console.log('Broadcasting via mesh:', broadcast);
+        setMeshMessages(prev => [...prev, broadcast]);
+        return true;
+      } catch (error) {
+        console.error('Failed to broadcast on mesh:', error);
+        return false;
+      }
+    }
+    return false;
+  };
+
+  // Monitor online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setMeshStatus('disconnected');
+    };
+    
+    const handleOffline = () => {
+      setIsOnline(false);
+      setMeshStatus('connecting');
+      // Try to connect to mesh network
+      const network = MeshNetworkManager();
+      network.connect();
+      setMeshNode(network);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    // Check if offline on load
+    if (!navigator.onLine) {
+      handleOffline();
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      if (meshNode) {
+        meshNode.disconnect();
+      }
+    };
+  }, [MeshNetworkManager]);
 
   // Get user location
   useEffect(() => {
@@ -67,7 +262,6 @@ const App = () => {
         setWeatherAlerts([
           { type: 'Heavy Rainfall', severity: 'high', intensity: '50+ mm/hr', duration: '+2 hours' }
         ]);
-        setLoading(false);
         return;
       }
 
@@ -109,13 +303,23 @@ const App = () => {
           feelsLike: 30
         });
       }
-      setLoading(false);
     };
 
-    fetchWeather();
-    const interval = setInterval(fetchWeather, 600000); // Update every 10 minutes
-    return () => clearInterval(interval);
-  }, [userLocation]);
+    if (isOnline) {
+      fetchWeather();
+      const interval = setInterval(fetchWeather, 600000); // Update every 10 minutes
+      return () => clearInterval(interval);
+    } else {
+      // Use cached/mock data when offline
+      setWeather({
+        temp: 28,
+        condition: 'Offline Mode',
+        humidity: 65,
+        windSpeed: 12,
+        feelsLike: 30
+      });
+    }
+  }, [userLocation, isOnline]);
 
   useEffect(() => {
     if (currentScreen === 'splash') {
@@ -226,10 +430,34 @@ const App = () => {
         <div className="bg-white px-4 py-3 flex items-center justify-between border-b">
           <span className="text-sm font-medium">9:41</span>
           <span className="text-xs text-gray-500">Emergency Services</span>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
+            {/* Network Status Indicator */}
+            {isOnline ? (
+              <Wifi className="w-4 h-4 text-green-500" />
+            ) : meshStatus === 'connected' ? (
+              <Radio className="w-4 h-4 text-blue-500 animate-pulse" title="Mesh Network Active" />
+            ) : (
+              <WifiOff className="w-4 h-4 text-red-500" />
+            )}
             <div className="w-4 h-3 border border-black rounded-sm"></div>
           </div>
         </div>
+
+        {/* Mesh Network Status Banner */}
+        {!isOnline && meshStatus === 'connected' && (
+          <div className="bg-blue-600 text-white px-4 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Radio className="w-4 h-4 animate-pulse" />
+              <span className="text-sm font-medium">Mesh Network Active</span>
+            </div>
+            <button 
+              onClick={() => setCurrentScreen('meshNetwork')}
+              className="text-xs bg-white bg-opacity-20 px-2 py-1 rounded"
+            >
+              {meshPeers.length} Peers
+            </button>
+          </div>
+        )}
 
         {weather && weatherAlerts.length > 0 && (
           <div onClick={() => setCurrentScreen('weatherAlert')} className="bg-red-700 text-white px-4 py-3 cursor-pointer hover:bg-red-800 transition-colors">
