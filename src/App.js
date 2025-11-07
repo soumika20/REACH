@@ -815,15 +815,6 @@ const App = () => {
         )}
 
         <div className="p-4 space-y-4 pb-24">
-          <button 
-            onClick={() => document.getElementById('mediaInput').click()} 
-            className="w-full bg-gray-900 text-white rounded-2xl p-4 flex items-center justify-between hover:bg-gray-800 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <Image className="w-5 h-5" />
-              <span className="font-medium">Send Media to Dispatcher</span>
-            </div>
-          </button>
           <input 
             id="mediaInput" 
             type="file" 
@@ -878,12 +869,6 @@ const App = () => {
             </div>
           )}
 
-          <button className="w-full bg-green-600 text-white rounded-2xl p-4 flex items-center justify-between hover:bg-green-700 transition-colors">
-            <div className="flex items-center gap-3">
-              <Video className="w-5 h-5" />
-              <span className="font-medium">Video Call</span>
-            </div>
-          </button>
 
           {mediaFiles.length > 0 && (
             <div className="bg-white rounded-2xl p-4">
