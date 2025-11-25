@@ -88,6 +88,10 @@ const [reqContact, setReqContact] = useState("");
 const [reqDescription, setReqDescription] = useState("");
 const [requests, setRequests] = useState([]);
 const [showReqDropdown, setShowReqDropdown] = useState(false);
+
+const isMobile = /android|iphone|ipad|mobile|miui|oppo|vivo|oneplus|realme/i.test(
+  navigator.userAgent
+);
 // Context menu state for active events list (right-click)
 const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, event: null });
 
