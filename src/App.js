@@ -679,6 +679,8 @@ useEffect(() => {
     }
   };
   
+  <button onClick={requestMobileLocation}>Grant Permission</button>
+  
   useEffect(() => {
     const fetchWeather = async () => {
       if (!WEATHER_API_KEY) {
