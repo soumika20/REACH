@@ -4,7 +4,7 @@ R.E.A.C.H. (Rapid Emergency, Access, Care, and Help Anytime, Anywhere) is a huma
 
 This repository contains the complete codebase for the web application and mobile-adapted interface, including frontend components, backend integrations with Firebase, and the AI processing pipeline. The project was developed as part of the Human Factors in Design course (ED3010).
 
-By Team 13
+By Team 13 <br>
 Karthiga, Soumika, Vibhaa
 
 ---
