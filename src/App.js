@@ -642,6 +642,43 @@ useEffect(() => {
     }
   };
 
+  const requestMobileLocation = async () => {
+    try {
+      setShowLocationDialog(false);
+  
+      if (!navigator.geolocation) {
+        alert("Geolocation not supported on this device.");
+        return;
+      }
+  
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+          });
+          setLocationPermission("granted");
+        },
+        (err) => {
+          console.log("Mobile geolocation error:", err);
+          alert(
+            "Unable to get location. Please enable location permissions in your browser settings."
+          );
+          setLocationPermission("denied");
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 8000,
+          maximumAge: 0,
+        }
+      );
+    } catch (e) {
+      console.log("Mobile geolocation exception:", e);
+      alert("Error fetching your location.");
+      setLocationPermission("denied");
+    }
+  };
+  
   useEffect(() => {
     const fetchWeather = async () => {
       if (!WEATHER_API_KEY) {
