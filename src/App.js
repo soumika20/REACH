@@ -83,6 +83,11 @@ const [pendingTimerCall, setPendingTimerCall] = useState(null);
 const [routeCoordinates, setRouteCoordinates] = useState([]);
 const [showFullscreenMedia, setShowFullscreenMedia] = useState(false);
 const [fullscreenMediaIndex, setFullscreenMediaIndex] = useState(0);
+const [reqName, setReqName] = useState("");
+const [reqContact, setReqContact] = useState("");
+const [reqDescription, setReqDescription] = useState("");
+const [requests, setRequests] = useState([]);
+const [showReqDropdown, setShowReqDropdown] = useState(false);
 // Context menu state for active events list (right-click)
 const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, event: null });
 
@@ -272,6 +277,24 @@ const fetchNearbyPlaces = async (lat, lng, categories, limit = 3) => {
 // Add state for nearby resources
 const [nearbyResources, setNearbyResources] = useState([]);
 const [selectedResource, setSelectedResource] = useState(null);
+
+/* Load resource requests globally */
+useEffect(() => {
+  if (currentScreen === "requestList" || currentScreen === "requestForm") {
+    const fetchReqs = async () => {
+      const colRef = collection(db, "resourceRequests");
+      const q = await getDocs(colRef);
+
+      const list = q.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(req => req.userId === auth.currentUser?.uid);
+
+      setRequests(list.reverse());
+    };
+
+    fetchReqs();
+  }
+}, [currentScreen]);
 
 // Fetch route when navigation screen is active
   useEffect(() => {
@@ -1287,7 +1310,7 @@ useEffect(() => {
         )}
 
         <div className="p-4 space-y-4 pb-24">
-          <button onClick={() => setCurrentScreen('createEvent')} className="w-full bg-gray-900 text-white rounded-2xl p-4 flex items-center justify-between hover:bg-gray-800 transition-colors">
+          <button onClick={() => setCurrentScreen('createEvent')} className="w-full bg-red-900 text-white rounded-2xl p-4 flex items-center justify-between hover:bg-gray-800 transition-colors">
             <div className="flex items-center gap-3">
               <PlusCircle className="w-5 h-5" />
               <span className="font-medium">Add Event</span>
@@ -1301,7 +1324,17 @@ useEffect(() => {
             </div>
           </button>
 
-          <button onClick={() => setShowEmergencyCallMenu(true)} className="w-full bg-gray-900 text-white rounded-2xl p-4 flex items-center justify-between hover:bg-gray-800 transition-colors">
+          <button
+            onClick={() => setCurrentScreen("requestList")}
+            className="w-full bg-blue-600 text-white rounded-2xl p-4 flex items-center justify-between hover:bg-blue-700 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Users className="w-5 h-5" />
+              <span className="font-medium">View Requested Resources</span>
+            </div>
+          </button>
+
+          <button onClick={() => setShowEmergencyCallMenu(true)} className="w-full bg-red-900 text-white rounded-2xl p-4 flex items-center justify-between hover:bg-gray-800 transition-colors">
             <div className="flex items-center gap-3">
               <Phone className="w-5 h-5" />
               <span className="font-medium">Emergency Call</span>
@@ -1527,48 +1560,190 @@ useEffect(() => {
     );
   }
 
-  if (currentScreen === 'requestForm') {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header title="Request Form" onBack={() => setCurrentScreen('home')} />
-        <div className="p-4 space-y-4 pb-24">
-          <div className="bg-white rounded-2xl p-4 space-y-4">
-            <div>
-              <label className="block text-sm font-semibold mb-2">Name</label>
-              <input type="text" className="w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="Enter your name" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-2">Location</label>
-              <input type="text" className="w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="Enter location" value={`${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`} readOnly />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-2">Contact</label>
-              <input type="tel" className="w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="Enter contact number" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-2">Type</label>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-lg">
-                  <span className="text-sm">Description</span>
-                  <button className="text-gray-400">×</button>
-                </div>
-                <div className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <span className="inline-block px-2 py-0.5 bg-gray-300 text-gray-700 text-xs rounded mb-1">Medical</span>
-                    <p className="text-sm">Description</p>
-                  </div>
-                  <button className="text-gray-400">×</button>
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">*Please provide details of assistance needed</p>
-            </div>
-            <button className="w-full bg-gray-900 text-white rounded-lg py-3 font-semibold hover:bg-gray-800">Request</button>
+ 
+  /*******************************
+ * REQUEST FORM (NEW VERSION)
+ *******************************/
+if (currentScreen === "requestForm") {
+
+  const submitRequest = async () => {
+    if (!reqName || !reqContact || !reqDescription) {
+      alert("Please fill all fields");
+      return;
+    }
+
+    const newReq = {
+      userId: auth.currentUser?.uid || "unknown",
+      name: reqName,
+      contact: reqContact,
+      description: reqDescription,
+      location: {
+        lat: userLocation.lat,
+        lng: userLocation.lng,
+      },
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      await addDoc(collection(db, "resourceRequests"), newReq);
+
+      alert("Request submitted!");
+      setCurrentScreen("requestList"); // redirect to listing page
+    } catch (err) {
+      console.error("Failed to save request:", err);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header title="Request Form" onBack={() => setCurrentScreen("home")} />
+
+      <div className="p-4 space-y-4 pb-24">
+        <div className="bg-white rounded-2xl p-4 space-y-4">
+          
+          {/* NAME */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">Name</label>
+            <input
+              type="text"
+              value={reqName}
+              onChange={(e) => setReqName(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+              placeholder="Enter your name"
+            />
           </div>
+
+          {/* LOCATION */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">Location</label>
+            <input
+              type="text"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+              value={`${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`}
+              readOnly
+            />
+          </div>
+
+          {/* CONTACT */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">Contact</label>
+            <input
+              type="tel"
+              value={reqContact}
+              onChange={(e) => setReqContact(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+              placeholder="Enter contact number"
+            />
+          </div>
+
+          {/* DESCRIPTION */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">Description</label>
+            <textarea
+              value={reqDescription}
+              onChange={(e) => setReqDescription(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+              placeholder="Describe what assistance you need"
+            />
+            <p className="text-xs text-gray-500 mt-2">
+              *Please provide details of assistance needed
+            </p>
+          </div>
+
+          {/* SUBMIT BUTTON */}
+          <button
+            onClick={submitRequest}
+            className="w-full bg-gray-900 text-white rounded-lg py-3 font-semibold hover:bg-gray-800"
+          >
+            Request
+          </button>
+
+          {/* VIEW PREVIOUS REQUESTS DROPDOWN */}
+          <button
+            onClick={() => setShowReqDropdown(prev => !prev)}
+            className="w-full bg-blue-500 text-white rounded-lg py-3 font-semibold mt-2"
+          >
+            {showReqDropdown ? "Hide Requested Resources" : "View Requested Resources"}
+          </button>
+
+          {showReqDropdown && (
+            <div className="bg-white rounded-xl p-4 mt-3 space-y-3 shadow">
+              {requests.length === 0 ? (
+                <p className="text-gray-500 text-sm text-center">No requests yet.</p>
+              ) : (
+                requests.map((r) => (
+                  <div key={r.id} className="border rounded-lg p-3">
+                    <p className="font-semibold text-sm">{r.name}</p>
+                    <p className="text-gray-600 text-sm mt-1">{r.description}</p>
+                    <p className="text-xs text-gray-400 mt-1">📍 {r.location.lat.toFixed(4)}, {r.location.lng.toFixed(4)}</p>
+                    <p className="text-xs text-gray-400">📞 {r.contact}</p>
+                    <p className="text-xs text-gray-400 mt-1">⏱ {new Date(r.timestamp).toLocaleString()}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
-        <BottomNav currentScreen="home" setCurrentScreen={setCurrentScreen} />
       </div>
-    );
-  }
+
+      <BottomNav currentScreen="home" setCurrentScreen={setCurrentScreen} />
+    </div>
+  );
+}
+
+/*******************************
+ * REQUEST LIST SCREEN
+ *******************************/
+
+
+
+
+/*******************************
+ * REQUEST LIST SCREEN
+ *******************************/
+
+/* Load resource requests globally */
+
+if (currentScreen === "requestList") {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header title="Requested Resources" onBack={() => setCurrentScreen("home")} />
+
+      <div className="p-4 space-y-4 pb-24">
+        {requests.length === 0 ? (
+          <p className="text-center text-gray-500 py-10">No requests submitted yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {requests.map((r) => (
+              <div key={r.id} className="bg-white rounded-lg p-4 shadow">
+                <p className="text-sm font-semibold">{r.name}</p>
+                <p className="text-gray-600 text-sm mt-1">{r.description}</p>
+                <p className="text-xs text-gray-400 mt-2">
+                  📍 {r.location.lat.toFixed(4)}, {r.location.lng.toFixed(4)}
+                </p>
+                <p className="text-xs text-gray-400">
+                  📞 {r.contact}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  ⏱ {new Date(r.timestamp).toLocaleString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          onClick={() => setCurrentScreen("requestForm")}
+          className="w-full bg-blue-500 text-white rounded-lg py-3 font-semibold mt-4"
+        >
+          Make Another Request
+        </button>
+      </div>
+
+      <BottomNav currentScreen="home" setCurrentScreen={setCurrentScreen} />
+    </div>
+  );
+}
 
 if (currentScreen === 'navigation' && selectedResource) {
   const destination = selectedResource;
