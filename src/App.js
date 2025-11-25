@@ -604,43 +604,51 @@ useEffect(() => {
     };
   }, [MeshNetworkManager]);
 
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-          setLocationPermission('granted');
-        },
-        (error) => {
-          console.log('Location access denied, using default location');
-          setLocationPermission('denied');
-        }
-      );
-    }
-  }, []);
+  // Desktop: auto-fetch location
+// Mobile: wait for user to tap "Grant Permission"
+useEffect(() => {
+  if (!navigator.geolocation) return;
 
-  const requestLocationPermission = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-          setLocationPermission('granted');
-          setShowLocationDialog(false);
-        },
-        (error) => {
-          console.log('Location access denied');
-          setLocationPermission('denied');
-          setShowLocationDialog(false);
-        }
-      );
-    }
-  };
+  if (!isMobile) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+        setLocationPermission("granted");
+      },
+      (err) => {
+        console.log("Auto-location denied on desktop:", err);
+        setLocationPermission("denied");
+      }
+    );
+  }
+}, []);
+
+const requestLocation = () => {
+  if (!navigator.geolocation) {
+    alert("Geolocation not supported on this device.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      setUserLocation({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+      });
+      setLocationPermission("granted");
+      setShowLocationDialog(false);
+    },
+    (err) => {
+      console.log("User denied location:", err);
+      setLocationPermission("denied");
+      setShowLocationDialog(false);
+    },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+};
 
   const requestMobileLocation = async () => {
     try {
@@ -1184,7 +1192,7 @@ useEffect(() => {
                 <div>
                   <p className="text-sm text-gray-600 mb-4">Allow R.E.A.C.H to access your location for accurate emergency services.</p>
                   <button 
-                    onClick={requestLocationPermission}
+                    onClick={requestLocation}
                     className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium mb-2 hover:bg-blue-600"
                   >
                     Grant Permission
