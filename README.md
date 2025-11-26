@@ -1,44 +1,20 @@
-# REACH 
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-R.E.A.C.H. (Rapid Emergency, Access, Care, and Help Anytime, Anywhere) is a human-centered emergency response system designed to bridge the critical gap before first responders arrive. The platform allows bystanders to report incidents through images, videos and location data while automatically generating AI-based summaries for dispatchers as well as bystanders. It also notifies nearby volunteers, provides routing to emergency services, displays weather and government alerts, and supports communication even in low-connectivity conditions.
+# Run and deploy your AI Studio app
 
-This repository contains the complete codebase for the web application and mobile-adapted interface, including frontend components, backend integrations with Firebase, and the AI processing pipeline. The project was developed as part of the Human Factors in Design course (ED3010).
+This contains everything you need to run your app locally.
 
-By Team 13 <br>
-Karthiga, Soumika, Vibhaa
+View your app in AI Studio: https://ai.studio/apps/temp/1
 
----
+## Run Locally
 
-Deployment: https://reach-hfd.vercel.app/ <br>
-check the above uploaded files for the Android APK
+**Prerequisites:**  Node.js
 
-Vercel and Android deployment - Soumika
 
----
-
-## ⚠️ Mobile Compatibility Notice (Nov 2025)
-
-For the best experience, please use:
-
-- **Laptop/Desktop browsers**
-- **Samsung phones**
-
-Some devices (e.g., **Poco, OnePlus**, and a few others) may experience:
-
-- Location permission prompts not working correctly  
-- Screen going blank after granting permission  
-- Inconsistent behavior due to device-level browser restrictions  
-
-We are working on a mobile‑specific optimized version.
-
----
-
-## 🚨 Important Notice
-
-Please contact emergency services **only in genuine emergency situations**.
-
-This platform is a prototype and has been done as a course project (ED3010 - Human factors in Design).
-
----
-
-Thank you for using REACH 
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
