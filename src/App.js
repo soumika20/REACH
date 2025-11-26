@@ -12,7 +12,9 @@ import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "fire
 // imports...
 import { Capacitor } from '@capacitor/core';
 import { Geolocation } from '@capacitor/geolocation';
+
 import { PushNotifications } from '@capacitor/push-notifications';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 
 
@@ -564,12 +566,20 @@ useEffect(() => {
         break;
       case 'emergency_broadcast':
         setMeshMessages(prev => [...prev, message]);
-        if (Notification.permission === 'granted') {
-          new Notification('Emergency Alert via Mesh', {
-            body: message.content,
-            icon: '/emergency-icon.png'
-          });
-        }
+        LocalNotifications.schedule({
+          notifications: [
+            {
+              title: "Emergency Alert via Mesh",
+              body: message.content,
+              id: Date.now(),
+              schedule: { at: new Date(Date.now() + 1000) },
+              sound: null,
+              attachments: null,
+              actionTypeId: "",
+              extra: null
+            }
+          ]
+        });
         break;
       case 'resource_share':
         console.log('Resource shared:', message.resource);
@@ -909,21 +919,30 @@ useEffect(() => {
 // Check for nearby createdEvents and send notifications
   useEffect(() => {
       const checkNearbycreatedEvents = () => {
-        if (Notification.permission !== 'granted') return;
-        
+        // Use LocalNotifications for native, fallback to Notification for web if needed
+        // Here, always use LocalNotifications as per instructions
         const allcreatedEvents = [...createdEvents];
         allcreatedEvents.forEach(event => {
           const distance = parseFloat(calculateDistance(userLocation.lat, userLocation.lng, event.lat, event.lng));
           if (distance <= 1) {
-            new Notification('Nearby Emergency Event', {
-              body: `${event.type} - ${distance} km away. ${eventVolunteers[event.id] || 0} volunteers responding.`,
-              icon: '/emergency-icon.png',
-              tag: `event-${event.id}` // Prevent duplicate notifications
+            LocalNotifications.schedule({
+              notifications: [
+                {
+                  title: "Nearby Emergency Event",
+                  body: `${event.type} - ${distance} km away. ${eventVolunteers[event.id] || 0} volunteers responding.`,
+                  id: Date.now(),
+                  schedule: { at: new Date(Date.now() + 1000) },
+                  sound: null,
+                  attachments: null,
+                  actionTypeId: "",
+                  extra: null
+                }
+              ]
             });
           }
         });
       };
-  
+
       if (locationPermission === 'granted') {
         checkNearbycreatedEvents();
         const interval = setInterval(checkNearbycreatedEvents, 60000); // Check every minute
@@ -2733,8 +2752,19 @@ if (currentScreen === "eventDetail" && selectedEvent) {
               if (Notification.permission === 'default') {
                 Notification.requestPermission().then(permission => {
                   if (permission === 'granted') {
-                    new Notification('Event Created', {
-                      body: 'Your event has been created successfully!'
+                    LocalNotifications.schedule({
+                      notifications: [
+                        {
+                          title: "Event Created",
+                          body: "Your event has been created successfully!",
+                          id: Date.now(),
+                          schedule: { at: new Date(Date.now() + 1000) },
+                          sound: null,
+                          attachments: null,
+                          actionTypeId: "",
+                          extra: null
+                        }
+                      ]
                     });
                   }
                 });
