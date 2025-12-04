@@ -567,7 +567,7 @@ useEffect(() => {
 
 
 const fetchNearbyPlaces = async (lat, lng, type, limit = 3) => {
-  if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === 'AIzaSyBcGvvgO9edsyIS5tpGoZ_ZIjV9pc2_Fvk') {
+  if (!GOOGLE_MAPS_API_KEY) {
     console.warn('⚠️ Google Maps API key not configured. Using mock data.');
     return [];
   }
@@ -585,8 +585,7 @@ const fetchNearbyPlaces = async (lat, lng, type, limit = 3) => {
     
     const googleType = typeMapping[type] || type.split('.')[1] || 'hospital';
     
-    const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${googleType}&key=${GOOGLE_MAPS_API_KEY}`;
-    
+	const url = `/api/places?lat=${lat}&lng=${lng}&type=${googleType}&radius=${radius}`;    
     console.log(`Fetching ${googleType} places...`);
     const response = await fetch(url);
     const data = await response.json();
@@ -1162,17 +1161,7 @@ const requestMobileLocation = async () => {
           windSpeed: 12,
           feelsLike: 30
         });
-        setWeatherAlerts([
-          { 
-            type: 'Heavy Rainfall', 
-            severity: 'Moderate',
-            category: 'Heavy rain',
-            headline: 'Heavy rain expected',
-            areas: 'Local area',
-            effective: new Date().toISOString(),
-            expires: new Date(Date.now() + 7200000).toISOString(),
-          }
-        ]);
+        setWeatherAlerts([]);
         return;
       }
 
@@ -1249,9 +1238,8 @@ useEffect(() => {
     if (userLocation.lat && userLocation.lng) {
       console.log('Loading nearby emergency resources from Geoapify...');
       
-      if (!GEOAPIFY_API_KEY || GEOAPIFY_API_KEY === '6a5a6eee4fb44c20bee69310910f4bdc') {
+      if (!GOOGLE_MAPS_API_KEY) {
         // Use mock data if API key not configured
-        console.log('Using mock data - Add your Geoapify API key for real data');
         const mockResources = [
           {
             id: 1,
