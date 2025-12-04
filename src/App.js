@@ -1171,7 +1171,6 @@ const requestMobileLocation = async () => {
             areas: 'Local area',
             effective: new Date().toISOString(),
             expires: new Date(Date.now() + 7200000).toISOString(),
-            description: 'This is sample mock data. Add your WeatherAPI.com key to see real weather alerts.'
           }
         ]);
         return;
