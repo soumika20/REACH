@@ -72,6 +72,7 @@ L.Icon.Default.mergeOptions({
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 const WEATHER_API_KEY = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
+const GEOAPIFY_API_KEY = process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY;
 
 const decodePolyline = (encoded) => {
   const poly = [];
