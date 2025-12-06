@@ -3510,7 +3510,7 @@ if (currentScreen === 'navigation' && selectedResource) {
 	{/* Show emergency routes */}
 {showEmergencyRoutes && emergencyRoutes.length > 0 && (
   <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-3">
-    <p className="text-sm font-semibold text-green-900 mb-2">📍 Showing route</p>
+    <p className="text-sm font-semibold text-green-900 mb-2"> Showing route</p>
     <button 
       onClick={() => {
         setShowEmergencyRoutes(false);
