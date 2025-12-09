@@ -1,5 +1,6 @@
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import { Home, Edit, Menu, User, ChevronRight, MapPin, Phone, Video, Camera, Image, AlertCircle, Navigation, Heart, Cloud, CloudRain, Wind, Thermometer, Activity, Wifi, WifiOff, Radio, Users,PlusCircle, ChevronLeft, Upload, Trash } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
@@ -104,9 +105,17 @@ const fetchRoute = async (startLat, startLng, endLat, endLng) => {
         (result, status) => {
           if (status === window.google.maps.DirectionsStatus.OK) {
             const route = result.routes[0];
-            const path = route.overview_path.map(p => [p.lat(), p.lng()]);
-            console.log('✓ Route fetched successfully');
-            resolve(path);
+const path = route.overview_path.map(p => [p.lat(), p.lng()]);
+console.log('✓ Route fetched successfully');
+
+// distance in meters → convert to km
+const distanceMeters = route.legs?.[0]?.distance?.value || null;
+const distanceKm = distanceMeters ? distanceMeters / 1000 : null;
+
+resolve({
+  path,
+  distanceKm
+});
           } else {
             console.warn('Directions API failed:', status);
             resolve([[startLat, startLng], [endLat, endLng]]);
@@ -566,9 +575,10 @@ useEffect(() => {
 }, [contextMenu.visible]);
 
 
-const fetchNearbyPlaces = async (lat, lng, type, limit = 5) => {
+const fetchNearbyPlaces = async (lat, lng, type, limit = 50, radius = 3000) => {
   if (!GOOGLE_MAPS_API_KEY) {
     console.warn("Google Maps API Key missing – cannot fetch nearby places");
+    
     return [];
   }
 
@@ -585,55 +595,169 @@ const fetchNearbyPlaces = async (lat, lng, type, limit = 5) => {
     'healthcare.pharmacy': 'pharmacy'
   };
 
-  const googleType = typeMap[type] || 'hospital';
+  const googleType = typeMap[type] || null;
+  if (!googleType) {
+    console.warn("Invalid resource type:", type);
+    return [];
+  }
 
-  try {
-    console.log(`Fetching ${googleType}s via Google Places API...`);
-
-    // Create a map instance (required for PlacesService)
-    const mapDiv = document.createElement('div');
-    const map = new window.google.maps.Map(mapDiv);
-
-    // Create PlacesService
-    const service = new window.google.maps.places.PlacesService(map);
-
-    // Make the request
+  const searchWithRadius = (searchRadius) => {
     return new Promise((resolve) => {
+      const mapDiv = document.createElement("div");
+      const map = new window.google.maps.Map(mapDiv);
+      const service = new window.google.maps.places.PlacesService(map);
+
       service.nearbySearch(
         {
           location: { lat, lng },
-          radius: 5000,
-          type: googleType
+          radius: searchRadius,
+          type: googleType,
         },
         (results, status) => {
-          if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
-            const places = results.slice(0, limit).map(place => ({
-              id: `google-${place.place_id}`,
-              name: place.name || `${googleType.replace('_', ' ')}`,
-              type: type.split('.')[0],
-              lat: place.geometry.location.lat(),
-              lng: place.geometry.location.lng(),
-              address: place.vicinity || 'Address not available',
-              distance: calculateDistance(lat, lng, place.geometry.location.lat(), place.geometry.location.lng()),
-              phone: place.international_phone_number || null,
-              rating: place.rating || null,
-              photo: place.photos?.[0] ? place.photos[0].getUrl({ maxWidth: 400 }) : null,
-              status: place.business_status === 'OPERATIONAL' ? 'Open' : 'Closed'
-            }));
-            
-            console.log(`Found ${places.length} ${googleType}(s) via Google Places`);
-            resolve(places.sort((a, b) => a.distance - b.distance));
+          if (
+            status === window.google.maps.places.PlacesServiceStatus.OK &&
+            results
+          ) {
+            const places = results.slice(0, limit).map((place) => {
+              const placeTypes = place.types || [];
+
+              // --- CATEGORY LOGIC REWRITE START ---
+              let category = googleType;
+
+              // restore doctor/clinic/hospital grouping ONLY for healthcare searches
+              if (googleType === "hospital") {
+                if (placeTypes.some(t => /pharmacy/i.test(t))) {
+                  category = "pharmacy";
+                }
+
+                // Name‑based grouping allowed ONLY for hospital/clinic searches
+                const name = (place.name || "").toLowerCase();
+                if (
+                  name.includes("hospital") ||
+                  name.includes("clinic") ||
+                  name.includes("doctor") ||
+                  name.startsWith("dr ") ||
+                  name.includes(" dr ")
+                ) {
+                  category = "hospital_clinic";
+                }
+              }
+              // --- CATEGORY LOGIC REWRITE END ---
+
+              return {
+                id: `google-${place.place_id}`,
+                name: place.name || googleType.replace("_", " "),
+                type: googleType,
+                category: category,
+                lat: place.geometry.location.lat(),
+                lng: place.geometry.location.lng(),
+                address: place.vicinity || "Address not available",
+                distance: calculateDistance(
+                  lat,
+                  lng,
+                  place.geometry.location.lat(),
+                  place.geometry.location.lng()
+                ),
+                phone: place.international_phone_number || null,
+                rating: place.rating || null,
+                photo: place.photos?.[0]
+                  ? place.photos[0].getUrl({ maxWidth: 400 })
+                  : null,
+                status:
+                  place.business_status === "OPERATIONAL"
+                    ? "Open"
+                    : "Closed",
+                    types: place.types || [],
+              };
+            });
+
+            resolve(
+              places.sort((a, b) => a.distance - b.distance)
+            );
           } else {
-            console.error('Google Places error:', status);
             resolve([]);
           }
         }
       );
     });
-  } catch (error) {
-    console.error(`Failed to fetch ${googleType}s from Google Places:`, error);
-    return [];
+  };
+
+  // 1) Try small radius (3 km)
+  let results = await searchWithRadius(radius);
+
+  // 2) If empty, expand search radius step-by-step
+  if (results.length === 0) {
+    const fallbackRadii = [5000, 7000, 10000, 15000]; // 5 km → 7 km → 10 km → 15 km
+
+    for (const r of fallbackRadii) {
+      console.warn(`No results in ${radius}m. Trying radius ${r}m...`);
+      results = await searchWithRadius(r);
+      if (results.length > 0) break;
+    }
   }
+
+  console.log(`Total ${googleType} results found:`, results.length);
+  // ------- ULTRA-STRICT FIRE & POLICE FILTER -------
+
+results = results.filter(place => {
+  const name = (place.name || "").toLowerCase();
+  const types = place.types || [];
+  const category = (place.category || "").toLowerCase();
+
+  // Detect medical by ANY signal
+  const isMedical =
+    /hospital|clinic|medical|pharma|drug|chemist|medic|dispensary/i.test(name) ||
+    types.some(t => /hospital|clinic|pharmacy|health|doctor/i.test(t));
+
+  // Detect pharmacy-specific even without name keywords
+  const pharmacyLike =
+    category.includes("pharmacy") ||
+    types.some(t => /pharmacy|drugstore|chemist/i.test(t));
+
+  // -------- FIRE FILTER --------
+  if (googleType === "fire_station") {
+    // Fire MUST have strong fire evidence
+    const isFire =
+      types.includes("fire_station") ||
+      /(^|\s)fire(\s|$|station|brigade)/i.test(name) ||
+      category.includes("fire_station");
+
+    return isFire && !isMedical && !pharmacyLike;
+  }
+
+  // -------- POLICE FILTER --------
+  if (googleType === "police") {
+    const isPolice =
+      types.includes("police") ||
+      /police|thana|ps |station/i.test(name) ||
+      category.includes("police");
+
+    return isPolice && !isMedical && !pharmacyLike;
+  }
+
+  // -------- HOSPITAL FILTER --------
+  if (googleType === "hospital") {
+    return !pharmacyLike; // keep clinics + doctors
+  }
+
+  // -------- PHARMACY FILTER --------
+  if (googleType === "pharmacy") {
+    return pharmacyLike;
+  }
+
+  return true;
+});
+
+// Remove duplicates
+results = Array.from(
+  new Map(results.map(r => [r.name.toLowerCase().trim(), r])).values()
+);
+
+// Sort by distance
+results.sort((a, b) => a.distance - b.distance);
+
+// ------- END FIX -------
+  return results;
 };
   
 useEffect(() => {
@@ -662,21 +786,30 @@ useEffect(() => {
 }, [currentScreen]);
 
 // Fetch route when navigation screen is active
-  useEffect(() => {
-    if (currentScreen === 'navigation' && selectedResource) {
-      const getRoute = async () => {
-        const route = await fetchRoute(
-          userLocation.lat, 
-          userLocation.lng, 
-          selectedResource.lat, 
-          selectedResource.lng
-        );
-        setRouteCoordinates(route);
-      };
-      getRoute();
-    }
-  }, [currentScreen, selectedResource, userLocation]);
+useEffect(() => {
+  if (currentScreen === 'navigation' && selectedResource) {
+    const getRoute = async () => {
+      const { path, distanceKm } = await fetchRoute(
+        userLocation.lat,
+        userLocation.lng,
+        selectedResource.lat,
+        selectedResource.lng
+      );
 
+      // Update the route polyline
+      setRouteCoordinates(path);
+
+      // Update the selected resource with EXACT Google Maps distance
+      if (distanceKm) {
+        setSelectedResource(prev =>
+          prev ? { ...prev, distance: distanceKm } : prev
+        );
+      }
+    };
+
+    getRoute();
+  }
+}, [currentScreen, selectedResource, userLocation]);
 
 // Live clock update
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -1539,7 +1672,7 @@ useEffect(() => {
               Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
               Math.sin(dLng/2) * Math.sin(dLng/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return (R * c).toFixed(1);
+    return (R * c);
   };
 
   if (currentScreen === 'splash') {
@@ -3585,7 +3718,27 @@ if (currentScreen === 'navigation' && selectedResource) {
       </div>
     );
   }
-
+  const createEmojiIcon = (emoji) => {
+    return L.divIcon({
+      html: `
+        <div style="
+          font-size: 28px;
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          background: white;
+          border: 2px solid #333;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        ">${emoji}</div>
+      `,
+      className: "",
+      iconSize: [40, 40],
+      iconAnchor: [20, 40]
+    });
+  };
   if (currentScreen === 'map') {
       return (
         <div className="min-h-screen bg-gray-50">
@@ -3614,41 +3767,56 @@ if (currentScreen === 'navigation' && selectedResource) {
               >
                 <Popup> Your Location</Popup>
               </Marker>
+              {/* =========== Emoji Marker Icon =========== */}
+              {/*
+                Insert createEmojiIcon function just above first usage of createCustomIcon below
+              */}
+              {(() => {
+                // Add the createEmojiIcon function here
+                
+                return null;
+              })()}
+              <MarkerClusterGroup chunkedLoading></MarkerClusterGroup>
               {nearbyResources
-  .filter(r =>
-    resourceFilter === 'all' ? true :
-    resourceFilter === 'healthcare' ? r.type === 'healthcare' :
-    resourceFilter === 'police' ? (r.type === 'service' && /police/i.test(r.name)) :
-    resourceFilter === 'fire' ? (r.type === 'service' && /fire/i.test(r.name)) :
-    resourceFilter === 'pharmacy' ? (r.type === 'pharmacy' || r.category === 'pharmacy') :
-    true
-  )
-  .map(resource => (
-              <Marker 
-                key={resource.id}
-                position={[resource.lat, resource.lng]} 
-                icon={createCustomIcon(
-                  resource.type === 'healthcare' ? '#DC2626' :                       // Hospitals: red
-                  (resource.type === 'service' && /police/i.test(resource.name)) ? '#2563EB' : // Police: blue
-                  (resource.type === 'service' && /fire/i.test(resource.name)) ? '#F59E0B' :   // Fire: orange
-                  (resource.type === 'pharmacy' || resource.category === 'pharmacy') ? '#8B5CF6' : // Pharmacy: purple
-                  '#16A34A' // default: green (other resources)
-                )}
-              >
-                <Popup>
-                <strong>
-  {resource.type === 'healthcare' ? '🏥 ' :
-   (resource.type === 'service' && /police/i.test(resource.name)) ? '👮 ' :
-   (resource.type === 'service' && /fire/i.test(resource.name)) ? '🔥 ' :
-   (resource.type === 'pharmacy' || resource.category === 'pharmacy') ? '💊 ' :
-   '📍 '}
-  {resource.name}
-</strong><br />
-                  {resource.distance} km away<br />
-                  Status: {resource.status}
-                </Popup>
-              </Marker>
-            ))}
+                .filter(r =>
+                  resourceFilter === 'all'
+                    ? true
+                    : resourceFilter === 'healthcare'
+                    ? (r.type === 'hospital' || r.category === 'hospital_clinic')
+                    : resourceFilter === 'police'
+                    ? (r.type === 'police')
+                    : resourceFilter === 'fire'
+                    ? (r.type === 'fire_station')
+                    : resourceFilter === 'pharmacy'
+                    ? (r.type === 'pharmacy' || r.category === 'pharmacy')
+                    : false
+                )
+                .map(resource => (
+                  <Marker 
+                    key={resource.id}
+                    position={[resource.lat, resource.lng]} 
+                    icon={createEmojiIcon(
+                      (resource.type === 'hospital' || resource.category === 'hospital_clinic') ? "🏥" :
+                      (resource.type === 'pharmacy' || resource.category === 'pharmacy') ? "💊" :
+                      resource.type === 'police' ? "👮" :
+                      resource.type === 'fire_station' ? "🚒" :
+                      "📍"
+                    )}
+                  >
+                    <Popup>
+                      <strong>
+                        {(resource.type === 'hospital' || resource.category === 'hospital_clinic') ? '🏥 ' :
+                          resource.type === 'police' ? '👮 ' :
+                          resource.type === 'fire_station' ? '🚒 ' :
+                          (resource.type === 'pharmacy' || resource.category === 'pharmacy') ? '💊 ' :
+                          '📍 '}
+                        {resource.name}
+                      </strong><br />
+                      {resource.distance} km away<br />
+                      Status: {resource.status}
+                    </Popup>
+                  </Marker>
+                ))}
 
             {/* Only show route for selected resource */}
             {selectedResource && (
@@ -3692,47 +3860,62 @@ if (currentScreen === 'navigation' && selectedResource) {
   ))}
 </div>
             <h3 className="font-bold text-lg">Nearby Emergency Resources</h3>
-            {nearbyResources
+            
+{nearbyResources
   .filter(r =>
-    resourceFilter === 'all' ? true :
-    resourceFilter === 'healthcare' ? r.type === 'healthcare' :
-    resourceFilter === 'police' ? (r.type === 'service' && /police/i.test(r.name)) :
-    resourceFilter === 'fire' ? (r.type === 'service' && /fire/i.test(r.name)) :
-    resourceFilter === 'pharmacy' ? (r.type === 'pharmacy' || r.category === 'pharmacy') :
-    true
+    resourceFilter === 'all'
+      ? true
+      : resourceFilter === 'healthcare'
+      ? (r.type === 'hospital' || r.category === 'hospital_clinic')
+      : resourceFilter === 'police'
+      ? (r.type === 'police')
+      : resourceFilter === 'fire'
+      ? (r.type === 'fire_station')
+      : resourceFilter === 'pharmacy'
+      ? (r.type === 'pharmacy' || r.category === 'pharmacy')
+      : false
   )
+  .sort((a, b) => (a.distance || 0) - (b.distance || 0))
   .map(resource => (
-              <div key={resource.id} className="bg-white rounded-xl p-4 flex justify-between items-center shadow-sm">
-                <div className="flex-1">
-      <div className = "flex items-center gap-2 mb-1">
-         <div className = {`w-3 h-3 rounded-full ${
-      resource.type === 'healthcare' ? 'bg-red-600' :
-      resource.type === 'service' && resource.name.includes('Police') ? 'bg-blue-600' :
-      resource.type === 'service' && resource.name.includes('Fire') ? 'bg-orange-600' :
-        'bg-green-600'
-  }`}></div>
-                  <h4 className="font-semibold">{resource.name}</h4>
-           </div>
-                  <p className="text-sm text-gray-500">{resource.distance} km away</p>
-                  {resource.status && (
-                    <span className={`text-xs px-2 py-1 rounded-full mt-1 inline-block ${
-                      resource.status === 'On-route' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {resource.status}
-                    </span>
-                  )}
-                </div>
-                <button 
-      onClick={() => {
+    <div key={resource.id} className="bg-white rounded-xl p-4 flex justify-between items-center shadow-sm">
+      <div className="flex-1">
+        <div className="flex items-center gap-3 mb-1">
+          <span className="text-2xl leading-none">
+            { (resource.type === 'hospital' || resource.category === 'hospital_clinic') ? '🏥' :
+              resource.type === 'police' ? '👮' :
+              resource.type === 'fire_station' ? '🚒' :
+              resource.type === 'pharmacy' ? '💊' :
+              '📍' }
+          </span>
+          <h4 className="font-semibold">{resource.name}</h4>
+        </div>
+        <p className="text-sm text-gray-500">
+          {resource.distance != null ? (
+            resource.distance < 1
+              ? `${Math.round(resource.distance * 1000)} m away`
+              : `${resource.distance.toFixed(2)} km away`
+          ) : 'Distance unknown'}
+        </p>
+        {resource.status && (
+          <span className={`text-xs px-2 py-1 rounded-full mt-1 inline-block ${
+            resource.status === 'On-route' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+          }`}>
+            {resource.status}
+          </span>
+        )}
+      </div>
+
+      <button
+        onClick={() => {
           setSelectedResource(resource);
           setCurrentScreen('navigation');
-      }}
-                  className="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition-colors ml-3"
-                >
-                  <Navigation className="w-5 h-5" />
-                </button>
-              </div>
-            ))}
+        }}
+        className="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition-colors ml-3"
+      >
+        <Navigation className="w-5 h-5" />
+      </button>
+    </div>
+  ))}
           </div>
           <BottomNav currentScreen="map" setCurrentScreen={setCurrentScreen} />
         </div>
