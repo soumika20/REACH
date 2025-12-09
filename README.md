@@ -28,9 +28,7 @@ This platform is a prototype and has been done as a course project (ED3010 - Hum
 
 ---
 
-Thank you for using REACH 
-
-## Setup & Run Locally (Step-by-Step)
+## Instructions to Setup & Run Locally (Step-by-Step)
 
 Follow these instructions to run the project on your laptop.
 
@@ -245,4 +243,6 @@ PORT=3001 npm start
 
 
 ---
+Thank you for using REACH 
+
 Built with ❤️ for emergency response coordination
