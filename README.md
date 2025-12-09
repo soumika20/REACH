@@ -53,7 +53,8 @@ Open VS Code
 File → Open Folder → Select the hfd folder
 
 ### Step 3: Install Dependencies
-In the terminal (Ctrl + `):
+Open a new terminal in VS Code - Command prompt (default powershell throws permission errors)
+In the terminal (Ctrl + `): 
 ```bash
 npm install
 ```
