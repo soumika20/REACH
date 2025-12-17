@@ -1,3 +1,13 @@
+import { 
+  Hospital, 
+  Siren,   
+  Flame, 
+  Ambulance, 
+  Mountain,   
+  Waves,    
+  Brain      
+} from 'lucide-react';
+
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
@@ -172,7 +182,7 @@ const App = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [mediaFiles, setMediaFiles] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('action');
-  const [userLocation, setUserLocation] = useState({ lat: 12.9716, lng: 77.5946 });
+  const [userLocation, setUserLocation] = useState({ lat: 12.9712, lng: 77.5946 });
   const [weather, setWeather] = useState(null);
   const [weatherAlerts, setWeatherAlerts] = useState([]);
   const [meshStatus, setMeshStatus] = useState('disconnected');
@@ -811,6 +821,30 @@ useEffect(() => {
   }
 }, [currentScreen, selectedResource, userLocation]);
 
+ 
+  useEffect(() => {
+    if (currentScreen !== 'createEvent') return;
+ 
+    const currentLocStr = newEventForm.location?.trim();
+    const looksLikeCoords = currentLocStr && currentLocStr.includes(',');
+
+    if (!currentLocStr || looksLikeCoords) {
+      const getAddress = async () => {
+        const address = await fetchExactAddress(userLocation.lat, userLocation.lng);
+        if (address) {
+          setNewEventForm(prev => ({ ...prev, location: address }));
+        } else { 
+          setNewEventForm(prev => ({
+            ...prev,
+            location: `Near ${userLocation.lat.toFixed(5)}, ${userLocation.lng.toFixed(5)}`
+          }));
+        }
+      };
+      getAddress();
+    }
+  }, [currentScreen, userLocation.lat, userLocation.lng]);
+
+
 // Live clock update
   const [currentTime, setCurrentTime] = useState(new Date());
   useEffect(() => {
@@ -1362,7 +1396,7 @@ const requestMobileLocation = async () => {
       setWeatherAlerts([]);
     }
   };
-
+  
   if (isOnline) {
     fetchWeather();
     const interval = setInterval(fetchWeather, 300000);
@@ -1509,77 +1543,76 @@ useEffect(() => {
   };
 
   const emergencyContacts = {
-    medical: {
-      title: 'Medical Emergency',
-      icon: '🏥',
-      color: 'bg-red-600',
-      numbers: [
+  medical: {
+    title: 'Medical Emergency',
+    lucideIcon: <Hospital className="w-12 h-12" />,
+    color: 'bg-red-600',  
+    numbers: [
         { name: 'Emergency Ambulance', number: '108', description: 'Free ambulance service' },
         { name: 'National Emergency', number: '112', description: 'All emergency services' },
         { name: 'Private Ambulance', number: '102', description: 'Alternative ambulance' }
       ]
-    },
-    police: {
-      title: 'Police/Crime',
-      icon: '👮',
-      color: 'bg-blue-600',
-      numbers: [
+  },
+  police: {
+    title: 'Police/Crime',
+    lucideIcon: <Siren className="w-12 h-12" />,
+    color: 'bg-blue-600',
+    numbers: [
         { name: 'Police Emergency', number: '100', description: 'Police control room' },
         { name: 'National Emergency', number: '112', description: 'All emergency services' },
         { name: 'Women Helpline', number: '1091', description: 'Women safety' }
       ]
-    },
-    fire: {
-      title: 'Fire Emergency',
-      icon: '🔥',
-      color: 'bg-orange-600',
-      numbers: [
+  },
+  fire: {
+    title: 'Fire Emergency',
+    lucideIcon: <Flame className="w-12 h-12" />,
+    color: 'bg-orange-600',
+   numbers: [
         { name: 'Fire Service', number: '101', description: 'Fire department' },
         { name: 'National Emergency', number: '112', description: 'All emergency services' }
       ]
-    },
-    accident: {
-      title: 'Road Accident',
-      icon: '🚗',
-      color: 'bg-yellow-600',
-      numbers: [
+  },
+  accident: {
+    title: 'Road Accident',
+    lucideIcon: <Ambulance className="w-12 h-12" />,
+    color: 'bg-yellow-600',
+   numbers: [
         { name: 'National Emergency', number: '112', description: 'All emergency services' },
         { name: 'Ambulance', number: '108', description: 'Medical assistance' },
         { name: 'Police', number: '100', description: 'Traffic police' }
       ]
-    },
-    disaster: {
-      title: 'Natural Disaster',
-      icon: '🏔️',
-      color: 'bg-purple-600',
-      numbers: [
+  },
+  disaster: {
+    title: 'Natural Disaster',
+    lucideIcon: <Mountain className="w-12 h-12" />, // or <AlertTriangle />
+    color: 'bg-purple-600',
+   numbers: [
         { name: 'National Emergency', number: '112', description: 'All emergency services' },
         { name: 'Disaster Helpline', number: '1078', description: 'Disaster management' },
         { name: 'NDRF', number: '011-24363260', description: 'National disaster response' }
       ]
-    },
-
-    flood: {
-      title: 'Flood Emergency',
-      icon: '🌊',
-      color: 'bg-blue-700',
-      numbers: [
+  },
+  flood: {
+    title: 'Flood Emergency',
+    lucideIcon: <Waves className="w-12 h-12" />,
+    color: 'bg-blue-700',
+   numbers: [
         { name: 'National Emergency', number: '112', description: 'All emergency services' },
         { name: 'Flood Control', number: '1070', description: 'Flood control room' },
         { name: 'NDRF', number: '011-24363260', description: 'Rescue operations' }
       ]
-    },
-    mental: {
-      title: 'Mental Health Crisis',
-      icon: '🧠',
-      color: 'bg-teal-600',
-      numbers: [
+  },
+  mental: {
+    title: 'Mental Health Crisis',
+    lucideIcon: <Brain className="w-12 h-12" />,
+    color: 'bg-teal-600',
+    numbers: [
         { name: 'Mental Health Helpline', number: '08046110007', description: 'Vandrevala Foundation' },
         { name: 'iCall', number: '9152987821', description: 'TISS counseling' },
         { name: 'NIMHANS', number: '080-46110007', description: 'Mental health support' }
       ]
-    }
-  };
+  }
+};
 
   const startEmergencyTimer = (serviceName, number) => {
     const timerConfig = {
@@ -1628,26 +1661,34 @@ useEffect(() => {
     return timerId;
   };
 
-  const makeEmergencyCall = (number) => {
-    const serviceMap = {
-      '108': 'Ambulance',
-      '100': 'Police',
-      '101': 'Fire Service',
-      '112': 'Emergency Services'
-    };
-    
-    const serviceName = serviceMap[number] || 'Emergency Service';
-    startEmergencyTimer(serviceName, number);
-    setShowCallEndDialog(true);
-    window.location.href = `tel:${number}`;
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && pendingTimerCall) {
-        setShowCallEndDialog(true);
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+const makeEmergencyCall = (number) => {
+  const serviceMap = {
+    '108': 'Ambulance',
+    '100': 'Police',
+    '101': 'Fire Service',
+    '112': 'Emergency Services'
   };
+
+  const serviceName = serviceMap[number] || 'Emergency Service';
+  startEmergencyTimer(serviceName, number);
+  setShowCallEndDialog(true);
+ 
+  if (Capacitor.isNativePlatform()) { 
+    window.location.href = `tel:${number}`;
+  } else { 
+    const telLink = document.createElement('a');
+    telLink.href = `tel:${number}`;
+    telLink.click();
+ 
+    setTimeout(() => {
+      window.location.href = `tel:${number}`;
+    }, 100);
+ 
+    setTimeout(() => {
+      window.open(`tel:${number}`, '_self');
+    }, 300);
+  }
+};
 
   const confirmCallEnded = () => {
     if (pendingTimerCall) {
@@ -1694,324 +1735,153 @@ useEffect(() => {
     );
   }
 
-  if (currentScreen === 'home') {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-b">
-          <div className="flex flex-col items-start">
-            <span className="text-sm font-medium">{currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
-            <span className="text-[10px] text-gray-500">{currentTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+if (currentScreen === 'home') {
+  return (
+    <div className="min-h-screen bg-gray-100 pb-32">
+      
+      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <span className="text-lg font-semibold text-gray-800">
+            {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+          </span>
+          <span className="text-sm text-gray-500">
+            {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          {locationPermission === 'granted' ? (
+            <MapPin className="w-5 h-5 text-green-600" />
+          ) : (
+            <MapPin className="w-5 h-5 text-gray-400" />
+          )}
+          {isOnline ? (
+            <Wifi className="w-5 h-5 text-green-600" />
+          ) : meshStatus === 'connected' ? (
+            <Radio className="w-5 h-5 text-blue-600 animate-pulse" />
+          ) : (
+            <WifiOff className="w-5 h-5 text-red-600" />
+          )}
+        </div>
+      </div>
+ 
+      {weather && (
+        <div className="mx-4 mt-4 bg-white rounded-2xl shadow-sm px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Thermometer className="w-8 h-8 text-blue-400" />
+            <div>
+              <p className="text-2xl font-semibold text-gray-800">{weather.temp}°C</p>
+              <p className="text-sm text-gray-500">{weather.condition}</p>
+            </div>
           </div>
-          <span className="text-xs text-gray-500">Emergency Services</span>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setShowLocationDialog(true)}
-              className="relative"
-            >
-              <MapPin className={`w-4 h-4 ${locationPermission === 'granted' ? 'text-green-500' : locationPermission === 'denied' ? 'text-red-500' : 'text-gray-400'}`} />
-            </button>
-
-            
-		{isOnline ? (
-              <Wifi className="w-4 h-4 text-green-500" />
-            ) : meshStatus === 'connected' ? (
-              <Radio className="w-4 h-4 text-blue-500 animate-pulse" title="Mesh Network Active" />
-            ) : (
-              <WifiOff className="w-4 h-4 text-red-500" />
-            )}
-          </div>        
-	</div>
-
-        {showLocationDialog && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-              <div className="flex items-center gap-3 mb-4">
-                <MapPin className="w-6 h-6 text-blue-500" />
-                <h3 className="text-lg font-bold">Location Access</h3>
-              </div>
-              
-              {locationPermission === 'granted' ? (
-                <div>
-                  <p className="text-sm text-gray-600 mb-4">✓ Location access enabled</p>
-                  <div className="bg-green-50 p-3 rounded-lg mb-4">
-                    <p className="text-xs text-green-800 font-medium"> Current Location:</p>
-                    <p className="text-sm text-green-900 mt-1">Latitude: {userLocation.lat.toFixed(6)}</p>
-                    <p className="text-sm text-green-900">Longitude: {userLocation.lng.toFixed(6)}</p>
-                  </div>
-                  <p className="text-xs text-gray-500">Your location helps emergency services reach you faster.</p>
-                </div>
-              ) : locationPermission === 'denied' ? (
-                <div>
-                  <p className="text-sm text-gray-600 mb-4">⚠️ Location access denied</p>
-                  <div className="bg-red-50 p-3 rounded-lg mb-4 border border-red-200">
-                    <p className="text-xs text-red-800 font-medium">Using default location</p>
-                    <p className="text-xs text-red-700 mt-1">Enable location in browser settings for accurate emergency response</p>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-sm text-gray-600 mb-4">Allow R.E.A.C.H to access your location for accurate emergency services.</p>
-                  <button 
-                    onClick={requestLocation}
-                    className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium mb-2 hover:bg-blue-600"
-                  >
-                    Grant Permission
-                  </button>
-                </div>
-              )}
-              
-      <button
-              onClick={ () => setShowLocationDialog(false) }
-                className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200"
+          <div className="text-right space-y-1">
+            <div className="flex items-center justify-end gap-2">
+              <Wind className="w-5 h-5 text-gray-400" />
+              <span className="text-sm text-gray-600">{weather.windSpeed} km/h</span>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <CloudRain className="w-5 h-5 text-gray-400" />
+              <span className="text-sm text-gray-600">{weather.humidity}%</span>
+            </div>
+          </div>
+        </div>
+      )}
+ 
+      <div className="mx-4 mt-8 space-y-5">
+    
+        <button
+          onClick={() => setCurrentScreen('createEvent')}
+          className="w-full bg-white rounded-3xl shadow-lg p-6 flex items-center justify-between hover:shadow-xl transition-all"
+        >
+          <div className="flex items-center gap-5">
+            <div className="bg-red-50 p-4 rounded-2xl">
+              <PlusCircle className="w-8 h-8 text-red-600" />
+            </div>
+            <div className="text-left">
+              <p className="text-xl font-bold text-gray-800">Report Emergency</p>
+              <p className="text-sm text-gray-600 mt-1">Create new incident alert</p>
+            </div>
+          </div>
+          <ChevronRight className="w-6 h-6 text-gray-400" />
+        </button>
+ 
+        <button
+          onClick={() => setCurrentScreen('requestForm')}
+          className="w-full bg-white rounded-3xl shadow-lg p-6 flex items-center justify-between hover:shadow-xl transition-all"
+        >
+          <div className="flex items-center gap-5">
+            <div className="bg-blue-50 p-4 rounded-2xl">
+              <Edit className="w-8 h-8 text-blue-600" />
+            </div>
+            <div className="text-left">
+              <p className="text-xl font-bold text-gray-800">Request Help</p>
+              <p className="text-sm text-gray-600 mt-1">Ask for supplies or volunteers</p>
+            </div>
+          </div>
+          <ChevronRight className="w-6 h-6 text-gray-400" />
+        </button>
+ 
+        <button
+          onClick={() => setCurrentScreen('requestList')}
+          className="w-full bg-white rounded-3xl shadow-lg p-6 flex items-center justify-between hover:shadow-xl transition-all"
+        >
+          <div className="flex items-center gap-5">
+            <div className="bg-purple-50 p-4 rounded-2xl">
+              <Users className="w-8 h-8 text-purple-600" />
+            </div>
+            <div className="text-left">
+              <p className="text-xl font-bold text-gray-800">View Requests</p>
+              <p className="text-sm text-gray-600 mt-1">See all active resource needs</p>
+            </div>
+          </div>
+          <ChevronRight className="w-6 h-6 text-gray-400" />
+        </button>
+      </div>
+ 
+      {showEmergencyCallMenu && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-end justify-center pb-20">
+          <div className="bg-gray-100 rounded-t-3xl w-full max-h-[85vh] overflow-y-auto shadow-2xl">
+            <div className="sticky top-0 bg-gray-900 text-white px-6 py-5 flex items-center justify-between rounded-t-3xl">
+              <h3 className="text-xl font-bold">Select Emergency Type</h3>
+              <button 
+                onClick={() => setShowEmergencyCallMenu(false)} 
+                className="text-white text-3xl leading-none"
               >
-                Close
-              </button>
-              <button
-                onClick={() => {
-                  setLocationPermission("denied");
-                  setUserLocation({ lat: 12.9716, lng: 77.5946 }); // fallback default
-                }}
-                className="w-full bg-red-100 text-red-700 py-3 rounded-lg font-medium hover:bg-red-200 mt-2"
-              >
-                Remove Location Access
+                ×
               </button>
             </div>
-          </div>
-        )}
-
-        {!isOnline && meshStatus === 'connected' && (
-          <div className="bg-blue-600 text-white px-4 py-2 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Radio className="w-4 h-4 animate-pulse" />
-              <span className="text-sm font-medium">Mesh Network Active</span>
-            </div>
-            <button 
-              onClick={() => setCurrentScreen('meshNetwork')}
-              className="text-xs bg-white bg-opacity-20 px-2 py-1 rounded"
-            >
-              {meshPeers.length} Peers
-            </button>
-          </div>
-        )}
-
-        {weather && weatherAlerts.length > 0 && (
-          <div onClick={() => setCurrentScreen('weatherAlert')} className="bg-red-600 text-white px-4 py-3 cursor-pointer hover:bg-red-700 transition-colors">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="font-semibold text-sm">Weather Alert: {weatherAlerts[0].type}</p>
-                <p className="text-xs opacity-90">Severity: {weatherAlerts[0].severity}</p>
-              </div>
-              <button className="bg-white text-red-600 px-3 py-1 rounded text-xs font-medium">View Details</button>
-            </div>
-          </div>
-        )}
-
-        {weather && (
-          <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs opacity-75">
-                {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-              </span>
-              <span className="text-xs opacity-75">
-                Updated: {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Thermometer className="w-5 h-5" />
-                  <span className="text-3xl font-bold">{weather.temp}°C</span>
-                </div>
-                <p className="text-sm opacity-90 mt-1">{weather.condition}</p>
-                <p className="text-xs opacity-75">Feels like {weather.feelsLike}°C</p>
-              </div>
-              <div className="text-right text-sm">
-                <div className="flex items-center gap-1 justify-end mb-1">
-                  <Wind className="w-4 h-4" />
-                  <span>{weather.windSpeed} km/h</span>
-                </div>
-                <div className="flex items-center gap-1 justify-end">
-                  <CloudRain className="w-4 h-4" />
-                  <span>{weather.humidity}%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Active Emergency Response Timers */}
-        {Object.entries(emergencyTimers).length > 0 && (
-          <div className="mx-4 mt-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl p-4 shadow-lg">
-            <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
-              <Activity className="w-5 h-5 animate-pulse" />
-              Active Emergency Response
-            </h3>
-            <div className="space-y-3">
-              {Object.entries(emergencyTimers).map(([id, timer]) => {
-                const timeLeft = Math.max(0, Math.floor((timer.arrivalTime - currentTime) / 1000));
-                const minutes = Math.floor(timeLeft / 60);
-                const seconds = timeLeft % 60;
-                
-                return (
-                  <div key={id} className="bg-white bg-opacity-20 backdrop-blur-sm rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">{timer.icon}</span>
-                        <span className="font-bold">{timer.service}</span>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        timer.status === 'Arrived' 
-                          ? 'bg-green-500' 
-                          : 'bg-yellow-500 text-black animate-pulse'
-                      }`}>
-                        {timer.status}
-                      </span>
-                    </div>
-                    
-                    {timer.status === 'On Route' && timeLeft > 0 ? (
-                      <div className="bg-black bg-opacity-30 rounded-lg p-3 mb-2">
-                        <div className="flex items-baseline gap-2">
-                          <div className="text-4xl font-bold tabular-nums">
-                            {minutes}:{seconds.toString().padStart(2, '0')}
-                          </div>
-                          <span className="text-sm opacity-90">min remaining</span>
-                        </div>
-                        <div className="w-full bg-white bg-opacity-30 rounded-full h-2 mt-2">
-                          <div 
-                            className="bg-white h-2 rounded-full transition-all duration-1000"
-                            style={{ 
-                              width: `${((timer.duration * 60 - timeLeft) / (timer.duration * 60)) * 100}%` 
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ) : timer.status === 'Arrived' ? (
-                      <div className="bg-green-500 bg-opacity-30 rounded-lg p-3 mb-2">
-                        <p className="font-medium">✓ Service has arrived at location</p>
-                      </div>
-                    ) : null}
-                    
-                    <p className="text-xs opacity-75">
-                      Called at {timer.startTime.toLocaleTimeString()}
-                    </p>
+            <div className="p-5 grid grid-cols-2 gap-4">
+              {Object.entries(emergencyContacts).map(([key, emergency]) => (
+                <button
+                  key={key}
+                  onClick={() => {
+                    setSelectedEmergencyType(key);
+                    setShowEmergencyCallMenu(false);
+                    setCurrentScreen('emergencyNumbers');
+                  }}
+                  className="bg-gray-800 hover:bg-gray-700 text-white rounded-2xl p-6 flex flex-col items-center justify-center gap-3 transition-all hover:scale-105 shadow-lg"
+                >
+                  <div className="text-4xl">
+                    {emergency.lucideIcon}
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Emergency Updates */}
-        {emergencyUpdates.length > 0 && (
-          <div className="mx-4 mt-4 bg-white rounded-2xl p-4 shadow-sm">
-            <h3 className="font-bold mb-3 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-blue-500" />
-              Recent Updates
-            </h3>
-            <div className="space-y-2">
-              {emergencyUpdates.slice(0, 3).map(update => (
-                <div key={update.id} className="bg-green-50 rounded-lg p-3 border-l-4 border-green-500">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{update.icon}</span>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-green-900">{update.message}</p>
-                      <p className="text-xs text-green-700 mt-1">{update.time.toLocaleTimeString()}</p>
-                    </div>
-                  </div>
-                </div>
+                  <p className="font-bold text-base">{emergency.title}</p>
+                </button>
               ))}
             </div>
           </div>
-        )}
-
-        <div className="p-4 space-y-4 pb-24">
-          <button onClick={() => setCurrentScreen('createEvent')} className="w-full bg-green-600 text-white rounded-2xl p-4 flex items-center justify-between hover:bg-gray-800 transition-colors">
-            <div className="flex items-center gap-3">
-              <PlusCircle className="w-5 h-5" />
-              <span className="font-medium">Add Event</span>
-            </div>
-          </button>
-
-          <button onClick={() => setCurrentScreen('requestForm')} className="w-full bg-gray-900 text-white rounded-2xl p-4 flex items-center justify-between hover:bg-gray-800 transition-colors">
-            <div className="flex items-center gap-3">
-              <Edit className="w-5 h-5" />
-              <span className="font-medium">Request Resources</span>
-            </div>
-          </button>
-
-          <button
-            onClick={() => setCurrentScreen("requestList")}
-            className="w-full bg-blue-600 text-white rounded-2xl p-4 flex items-center justify-between hover:bg-blue-700 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <Users className="w-5 h-5" />
-              <span className="font-medium">View Requested Resources</span>
-            </div>
-          </button>
-
-          <button onClick={() => setShowEmergencyCallMenu(true)} className="w-full bg-red-900 text-white rounded-2xl p-4 flex items-center justify-between hover:bg-gray-800 transition-colors">
-            <div className="flex items-center gap-3">
-              <Phone className="w-5 h-5" />
-              <span className="font-medium">Emergency Call</span>
-            </div>
-          </button>
-{showCallEndDialog && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-                <h3 className="text-lg font-bold mb-4">Emergency Call</h3>
-                <p className="text-sm text-gray-600 mb-6">
-                  Has your emergency call ended? We'll start tracking the response time.
-                </p>
-                <button
-                  onClick={confirmCallEnded}
-                  className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium mb-2 hover:bg-blue-600"
-                >
-                  Call Ended - Start Timer
-                </button>
-                <button
-                  onClick={() => setShowCallEndDialog(false)}
-                  className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200"
-                >
-                  Still on Call
-                </button>
-              </div>
-            </div>
-          )}
-
-          {showEmergencyCallMenu && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end justify-center">
-              <div className="bg-white rounded-t-3xl w-full max-h-[80vh] overflow-y-auto">
-                <div className="sticky top-0 bg-white border-b px-4 py-4 flex items-center justify-between">
-                  <h3 className="text-lg font-bold">Select Emergency Type</h3>
-                  <button onClick={() => setShowEmergencyCallMenu(false)} className="text-gray-500 text-2xl">×</button>
-                </div>
-                <div className="p-4 grid grid-cols-2 gap-3">
-                  {Object.entries(emergencyContacts).map(([key, emergency]) => (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        setSelectedEmergencyType(key);
-                        setShowEmergencyCallMenu(false);
-                        setCurrentScreen('emergencyNumbers');
-                      }}
-                      className={`${emergency.color} text-white rounded-2xl p-4 text-center hover:opacity-90 transition-opacity`}
-                    >
-                      <div className="text-3xl mb-2">{emergency.icon}</div>
-                      <p className="font-semibold text-sm">{emergency.title}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
         </div>
+      )}
+ 
+      <button
+        onClick={() => setShowEmergencyCallMenu(true)}
+        className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-red-600 hover:bg-red-700 text-white rounded-full w-12 h-12 shadow-2xl flex items-center justify-center transition-all hover:scale-110 z-50"
+      >
+        <Phone className="w-8 h-8" />
+      </button>
 
-        <BottomNav currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} />
-      </div>
-    );
-  }
+      <BottomNav currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} />
+    </div>
+  );
+}
 
   if (currentScreen === 'emergencyNumbers' && selectedEmergencyType) {
     const emergency = emergencyContacts[selectedEmergencyType];
@@ -3259,16 +3129,19 @@ if (currentScreen === 'navigation' && selectedResource) {
                 <option value="Other">Other</option>
               </select>
             </div>
-  
-            {/* Location */}
+   
             <div>
               <label className="block text-sm font-semibold mb-2">Location</label>
               <input
                 type="text"
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-black placeholder-gray-500"
-                value={newEventForm.location || `${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`}
+                placeholder="Loading address from GPS..."
+                value={newEventForm.location || ''}
                 onChange={(e) => setNewEventForm({ ...newEventForm, location: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                You can add extra details (e.g. "3rd floor", "behind temple")
+              </p>
             </div>
   
             {/* Volunteers Required */}
@@ -4365,7 +4238,7 @@ const Header = ({ title, onBack, showBack = true }) => (
         <span className="text-sm">{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
       )}
       <span className="font-semibold">{title}</span>
-      <div className="w-16"></div>
+      <div className="w-12"></div>
     </div>
   </div>
 );
