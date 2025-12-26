@@ -4,9 +4,6 @@ R.E.A.C.H. (Rapid Emergency, Access, Care, and Help Anytime, Anywhere) is a huma
 
 This repository contains the complete codebase for the web application and mobile-adapted interface, including frontend components, backend integrations with Firebase, and the AI processing pipeline. The project was developed as part of the Human Factors in Design course (ED3010).
 
-By Team 13 <br>
-Karthiga, Soumika, Vibhaa
-
 ---
 
 Deployment: https://reach-hfd.vercel.app/ <br>
@@ -14,14 +11,6 @@ check the above uploaded files for the Android APK
 On Android, every time you open the app, tap the map icon and press “Grant Permission” on the pop-up to allow location access.
 Check the reach_llm folder for llm files
 
-## Contributions
-
-| Member     | Key Responsibilities                                      
-|------------|-----------------------------------------------------------
-| Soumika    | Frontend UI/UX, React frontend, Firebase integration,TailwindCSS, Vercel deployment, Android APK 
-| Karthiga   | Frontend UI/UX, React frontend, Google Maps integration, AI incident summarization and fake media detection
-| Vibhaa     | LLM prompt engineering, AI fake media detection    
----
 
 ## 🚨 Important Notice
 
@@ -153,51 +142,7 @@ VITE v5.x.x  ready in xxx ms
 <img width="1713" height="795" alt="image" src="https://github.com/user-attachments/assets/08c0f099-74b5-41fa-be8e-aa1c9303a497" />
 
 
-## Troubleshooting
-
-### Port Already in Use
-If port 3000 is already in use:
-```bash
-# Kill the process using port 3000
-npx kill-port 3000
-# Or run on different port
-PORT=3001 npm start
-```
-
-### Location Not Working
-- Grant browser location permissions
-- For HTTPS deployment, location APIs require secure context
-- Check browser console for geolocation errors
-
-### Map Not Displaying
-- Verify Leaflet CSS is imported in `App.js`
-- Check that OpenStreetMap tiles are accessible
-- Clear browser cache and reload
-
-## Features
-
--  Real-time location tracking 📍
--  Interactive maps with emergency resources 🗺️
--  Emergency event creation and management 🚨
--  Real-time chat for events 💬 
--  Media upload (photos, videos, audio) 📸
--  Weather alerts 🌤️ 
--  Quick emergency call access 📞
--  Resource request system 🆘
--  Firebase backend integration 🔥
-
-## Technologies Used
-
-- **React 18** - Frontend framework
-- **Firebase** - Backend (Firestore, Storage, Auth)
-- **Leaflet/React-Leaflet** - Interactive maps
-- **Capacitor** - Native mobile capabilities
-- **Lucide React** - Icon library
-- **OpenStreetMap** - Map tiles
-- **OSRM** - Route calculation
-
-
----
 Thank you for using REACH 
 
 Built with ❤️ for emergency response coordination
+
