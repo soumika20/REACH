@@ -12,12 +12,6 @@ On Android, every time you open the app, tap the map icon and press “Grant Per
 Check the reach_llm folder for llm files
 
 
-## 🚨 Important Notice
-
-Please contact emergency services **only in genuine emergency situations**.
-
-This platform is a prototype and has been done as a course project (ED3010 - Human factors in Design).
-
 ---
 
 ## Getting Started - Local Development Setup
@@ -145,4 +139,5 @@ VITE v5.x.x  ready in xxx ms
 Thank you for using REACH 
 
 Built with ❤️ for emergency response coordination
+
 
