@@ -93,16 +93,14 @@ const fetchRoute = async (startLat, startLng, endLat, endLng) => {
   try {
     if (!GOOGLE_MAPS_API_KEY) {
       console.warn('No Google Maps API key');
-      return [[startLat, startLng], [endLat, endLng]];
+      return { path: [[startLat, startLng], [endLat, endLng]], steps: [], distanceKm: null };
     }
 
-    // Wait for Google Maps to load
     if (!window.google || !window.google.maps) {
       console.warn("Google Maps not loaded yet");
-      return [[startLat, startLng], [endLat, endLng]];
+      return { path: [[startLat, startLng], [endLat, endLng]], steps: [], distanceKm: null };
     }
 
-    // Use DirectionsService
     const directionsService = new window.google.maps.DirectionsService();
 
     return new Promise((resolve) => {
@@ -115,30 +113,79 @@ const fetchRoute = async (startLat, startLng, endLat, endLng) => {
         (result, status) => {
           if (status === window.google.maps.DirectionsStatus.OK) {
             const route = result.routes[0];
-const path = route.overview_path.map(p => [p.lat(), p.lng()]);
-console.log('✓ Route fetched successfully');
+            const path = route.overview_path.map(p => [p.lat(), p.lng()]);
+            
+            const distanceMeters = route.legs?.[0]?.distance?.value || null;
+            const distanceKm = distanceMeters ? distanceMeters / 1000 : null;
 
-// distance in meters → convert to km
-const distanceMeters = route.legs?.[0]?.distance?.value || null;
-const distanceKm = distanceMeters ? distanceMeters / 1000 : null;
+            // Extract turn-by-turn steps
+            const steps = route.legs[0].steps.map((step, idx) => ({
+              instruction: step.instructions.replace(/<[^>]*>/g, ''), // Remove HTML tags
+              distance: step.distance.text,
+              distanceMeters: step.distance.value,
+              duration: step.duration.text,
+              maneuver: step.maneuver || 'straight',
+              startLocation: { lat: step.start_location.lat(), lng: step.start_location.lng() },
+              endLocation: { lat: step.end_location.lat(), lng: step.end_location.lng() }
+            }));
 
-resolve({
-  path,
-  distanceKm
-});
+            resolve({ path, steps, distanceKm });
           } else {
             console.warn('Directions API failed:', status);
-            resolve([[startLat, startLng], [endLat, endLng]]);
+            resolve({ path: [[startLat, startLng], [endLat, endLng]], steps: [], distanceKm: null });
           }
         }
       );
     });
   } catch (error) {
     console.error('Route fetch failed:', error);
-    return [[startLat, startLng], [endLat, endLng]];
+    return { path: [[startLat, startLng], [endLat, endLng]], steps: [], distanceKm: null };
   }
 };
+const enrichStepWithLandmarks = async (step) => {
+  try {
+    if (!window.google || !GOOGLE_MAPS_API_KEY) return step;
 
+    const { startLocation } = step;
+    const mapDiv = document.createElement("div");
+    const map = new window.google.maps.Map(mapDiv);
+    const service = new window.google.maps.places.PlacesService(map);
+
+    return new Promise((resolve) => {
+      service.nearbySearch(
+        {
+          location: startLocation,
+          radius: 100,
+          type: ['point_of_interest', 'establishment']
+        },
+        (results, status) => {
+          if (status === window.google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+            const landmark = results[0].name;
+            let enrichedInstruction = step.instruction;
+            
+            // Replace generic directions with landmark-based ones
+            if (step.maneuver === 'turn-right') {
+              enrichedInstruction = `Turn right next to ${landmark}`;
+            } else if (step.maneuver === 'turn-left') {
+              enrichedInstruction = `Turn left near ${landmark}`;
+            } else if (step.instruction.toLowerCase().includes('straight')) {
+              enrichedInstruction = `Continue straight past ${landmark}`;
+            } else {
+              enrichedInstruction = `${step.instruction} (near ${landmark})`;
+            }
+            
+            resolve({ ...step, instruction: enrichedInstruction, landmark });
+          } else {
+            resolve(step);
+          }
+        }
+      );
+    });
+  } catch (err) {
+    console.error("Landmark enrichment failed:", err);
+    return step;
+  }
+};
 const fetchExactAddress = async (lat, lng) => {
   try {
     if (!GOOGLE_MAPS_API_KEY) return null;
@@ -355,7 +402,10 @@ const [reqContact, setReqContact] = useState("");
 const [reqDescription, setReqDescription] = useState("");
 const [requests, setRequests] = useState([]);
 const [showReqDropdown, setShowReqDropdown] = useState(false);
-
+const [navigationSteps, setNavigationSteps] = useState([]);
+const [currentStepIndex, setCurrentStepIndex] = useState(0);
+const [showNavigationPanel, setShowNavigationPanel] = useState(false);
+const [userHeading, setUserHeading] = useState(0);
 const isMobile = /android|iphone|ipad|mobile|miui|oppo|vivo|oneplus|realme/i.test(
   navigator.userAgent
 );
@@ -799,17 +849,23 @@ useEffect(() => {
 useEffect(() => {
   if (currentScreen === 'navigation' && selectedResource) {
     const getRoute = async () => {
-      const { path, distanceKm } = await fetchRoute(
+      const { path, steps, distanceKm } = await fetchRoute(
         userLocation.lat,
         userLocation.lng,
         selectedResource.lat,
         selectedResource.lng
       );
 
-      // Update the route polyline
       setRouteCoordinates(path);
 
-      // Update the selected resource with EXACT Google Maps distance
+      // Enrich steps with landmarks
+      const enrichedSteps = await Promise.all(
+        steps.map(step => enrichStepWithLandmarks(step))
+      );
+      
+      setNavigationSteps(enrichedSteps);
+      setCurrentStepIndex(0);
+
       if (distanceKm) {
         setSelectedResource(prev =>
           prev ? { ...prev, distance: distanceKm } : prev
@@ -820,8 +876,7 @@ useEffect(() => {
     getRoute();
   }
 }, [currentScreen, selectedResource, userLocation]);
-
- 
+	
   useEffect(() => {
     if (currentScreen !== 'createEvent') return;
  
@@ -1336,7 +1391,39 @@ const requestMobileLocation = async () => {
     setLocationPermission("denied");
   }
 };
-  
+
+// Track user position for turn-by-turn navigation
+useEffect(() => {
+  if (currentScreen !== 'navigation' || !showNavigationPanel) return;
+
+  const watchId = navigator.geolocation.watchPosition(
+    (position) => {
+      const { latitude, longitude, heading } = position.coords;
+      
+      setUserLocation({ lat: latitude, lng: longitude });
+      if (heading !== null) setUserHeading(heading);
+
+      // Check if user reached next step
+      if (navigationSteps.length > 0 && currentStepIndex < navigationSteps.length) {
+        const nextStep = navigationSteps[currentStepIndex];
+        const distanceToStep = calculateDistance(
+          latitude, longitude,
+          nextStep.endLocation.lat, nextStep.endLocation.lng
+        );
+
+        // Move to next step if within 20 meters
+        if (distanceToStep < 0.02) {
+          setCurrentStepIndex(prev => Math.min(prev + 1, navigationSteps.length - 1));
+        }
+      }
+    },
+    (error) => console.error("Location tracking error:", error),
+    { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
+  );
+
+  return () => navigator.geolocation.clearWatch(watchId);
+}, [currentScreen, showNavigationPanel, navigationSteps, currentStepIndex]);
+	
   useEffect(() => {
   const fetchWeather = async () => {
     try {
@@ -2304,6 +2391,22 @@ if (currentScreen === 'navigation' && selectedResource) {
             <span className="text-sm text-green-700 font-medium">On Route to {destination.name}</span>
           </div>
         </div>
+        {/* Navigation Panel Toggle Button */}
+        <button
+          onClick={() => setShowNavigationPanel(!showNavigationPanel)}
+          className="fixed bottom-32 right-4 bg-blue-500 text-white p-4 rounded-full shadow-2xl z-[1000] hover:bg-blue-600 transition-all"
+        >
+          <Navigation className="w-6 h-6" />
+        </button>
+
+        {/* Navigation Panel */}
+        {showNavigationPanel && (
+          <NavigationPanel 
+            steps={navigationSteps}
+            currentIndex={currentStepIndex}
+            onClose={() => setShowNavigationPanel(false)}
+          />
+        )}
       </div>
       <BottomNav currentScreen="map" setCurrentScreen={setCurrentScreen} />
     </div>
@@ -4247,6 +4350,69 @@ const Header = ({ title, onBack, showBack = true }) => (
     </div>
   </div>
 );
+const NavigationPanel = ({ steps, currentIndex, onClose }) => {
+  if (!steps || steps.length === 0) return null;
+
+  const currentStep = steps[currentIndex];
+  const nextStep = steps[currentIndex + 1];
+  
+  const getManeuverIcon = (maneuver) => {
+    switch(maneuver) {
+      case 'turn-right': return '➡️';
+      case 'turn-left': return '⬅️';
+      case 'turn-slight-right': return '↗️';
+      case 'turn-slight-left': return '↖️';
+      case 'uturn': return '🔄';
+      default: return '⬆️';
+    }
+  };
+
+  return (
+    <div className="fixed bottom-24 right-4 bg-white rounded-2xl shadow-2xl p-4 w-80 z-[1001]">
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="font-bold text-lg">Turn-by-Turn</h3>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          ✕
+        </button>
+      </div>
+
+      {/* Current Step */}
+      <div className="bg-blue-50 rounded-xl p-4 mb-3">
+        <div className="flex items-start gap-3">
+          <span className="text-4xl">{getManeuverIcon(currentStep.maneuver)}</span>
+          <div className="flex-1">
+            <p className="font-bold text-blue-900 mb-1">{currentStep.instruction}</p>
+            <p className="text-sm text-blue-700">in {currentStep.distance}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Next Step Preview */}
+      {nextStep && (
+        <div className="bg-gray-50 rounded-lg p-3">
+          <p className="text-xs text-gray-600 mb-1">Then:</p>
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{getManeuverIcon(nextStep.maneuver)}</span>
+            <p className="text-sm text-gray-700">{nextStep.instruction}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Progress */}
+      <div className="mt-3 pt-3 border-t border-gray-200">
+        <p className="text-xs text-gray-500">
+          Step {currentIndex + 1} of {steps.length}
+        </p>
+        <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+          <div 
+            className="bg-blue-500 h-2 rounded-full transition-all"
+            style={{ width: `${((currentIndex + 1) / steps.length) * 100}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const BottomNav = ({ currentScreen, setCurrentScreen }) => (
   <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 px-4 py-3 flex justify-between items-center z-10" style={{ backgroundColor: '#26CCC2' }}>
@@ -4333,5 +4499,4 @@ const AudioBubble = ({ url, isMine }) => {
 };
 
 export default App;
-
 
