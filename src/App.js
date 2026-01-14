@@ -1824,9 +1824,9 @@ const makeEmergencyCall = (number) => {
 
 if (currentScreen === 'home') {
   return (
-    <div className="min-h-screen bg-gray-100 pb-32">
+    <div className="min-h-screen bg-gray-100 pb-32" style={{ backgroundColor: '#F8FAB4' }}>
       
-      <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between" style={{ backgroundColor: '#F4F4F4' }}>    
+      <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between" style={{ backgroundColor: '#F08787' }}>    
 	<div className="flex items-center gap-4">
           <span className="text-lg font-semibold text-gray-800">
             {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
@@ -1878,7 +1878,7 @@ if (currentScreen === 'home') {
       <button
         onClick={() => setCurrentScreen('createEvent')}
         className="w-full rounded-3xl shadow-lg p-6 flex items-center justify-between hover:shadow-xl transition-all"
-        style={{ backgroundColor: '#F39EB6' }}
+        style={{ backgroundColor: '#FFC7A7' }}
       >
           <div className="flex items-center gap-5">
             <div className="bg-red-50 p-4 rounded-2xl">
@@ -1895,7 +1895,7 @@ if (currentScreen === 'home') {
         <button
           onClick={() => setCurrentScreen('requestForm')}
           className="w-full bg-white rounded-3xl shadow-lg p-6 flex items-center justify-between hover:shadow-xl transition-all"
-        style={{ backgroundColor: '#FAEB92' }}
+        style={{ backgroundColor: '#FFC7A7' }}
 
 		>
           <div className="flex items-center gap-5">
@@ -1913,7 +1913,7 @@ if (currentScreen === 'home') {
         <button
           onClick={() => setCurrentScreen('requestList')}
           className="w-full bg-white rounded-3xl shadow-lg p-6 flex items-center justify-between hover:shadow-xl transition-all"
-        style={{ backgroundColor: '#B0FFFA' }}
+        style={{ backgroundColor: '#FFC7A7' }}
 
 		>
           <div className="flex items-center gap-5">
@@ -4415,7 +4415,7 @@ const NavigationPanel = ({ steps, currentIndex, onClose }) => {
 };
 
 const BottomNav = ({ currentScreen, setCurrentScreen }) => (
-  <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 px-4 py-3 flex justify-between items-center z-10" style={{ backgroundColor: '#26CCC2' }}>
+  <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 px-4 py-3 flex justify-between items-center z-10" style={{ backgroundColor: '#F08787' }}>
     <button onClick={() => setCurrentScreen('home')} className={`flex flex-col items-center ${currentScreen === 'home' ? 'text-blue-300' : 'text-white'}`}>
       <Home className="w-6 h-6" />
     </button>
@@ -4499,4 +4499,6 @@ const AudioBubble = ({ url, isMine }) => {
 };
 
 export default App;
+
+
 
