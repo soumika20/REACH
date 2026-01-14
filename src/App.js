@@ -1739,11 +1739,12 @@ if (currentScreen === 'home') {
   return (
     <div className="min-h-screen bg-gray-100 pb-32">
       
-      <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between" style={{ backgroundColor: '#79C9C5' }}>        <div className="flex items-center gap-4">
+      <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between" style={{ backgroundColor: '#F4F4F4' }}>    
+	<div className="flex items-center gap-4">
           <span className="text-lg font-semibold text-gray-800">
             {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
           </span>
-          <span className="text-sm text-gray-500">
+          <span className="text-sm font-semibold text-gray-900">
             {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
           </span>
         </div>
@@ -4248,7 +4249,7 @@ const Header = ({ title, onBack, showBack = true }) => (
 );
 
 const BottomNav = ({ currentScreen, setCurrentScreen }) => (
-  <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 px-4 py-3 flex justify-between items-center z-10" style={{ backgroundColor: '#1C4D8D' }}>
+  <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 px-4 py-3 flex justify-between items-center z-10" style={{ backgroundColor: '#26CCC2' }}>
     <button onClick={() => setCurrentScreen('home')} className={`flex flex-col items-center ${currentScreen === 'home' ? 'text-blue-300' : 'text-white'}`}>
       <Home className="w-6 h-6" />
     </button>
@@ -4332,4 +4333,5 @@ const AudioBubble = ({ url, isMine }) => {
 };
 
 export default App;
+
 
