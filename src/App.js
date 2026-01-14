@@ -2288,8 +2288,7 @@ if (currentScreen === "requestForm") {
 
 if (currentScreen === "requestList") {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header title="Requested Resources" onBack={() => setCurrentScreen("home")} />
+      <div className="min-h-screen" style={{ backgroundColor: '#F8FAB4' }}>      <Header title="Requested Resources" onBack={() => setCurrentScreen("home")} />
 
       <div className="p-4 space-y-4 pb-24">
         {requests.length === 0 ? (
@@ -2336,8 +2335,7 @@ if (currentScreen === 'navigation' && selectedResource) {
   ];
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header title="" onBack={() => {
+      <div className="min-h-screen" style={{ backgroundColor: '#F8FAB4' }}>      <Header title="" onBack={() => {
         setCurrentScreen('map');
         setSelectedResource(null);
       }} />
@@ -2414,8 +2412,7 @@ if (currentScreen === 'navigation' && selectedResource) {
 }
   if (currentScreen === 'activityHistory') {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header title="Activity History" onBack={() => setCurrentScreen('profile')} />
+    <div className="min-h-screen" style={{ backgroundColor: '#F8FAB4' }}>        <Header title="Activity History" onBack={() => setCurrentScreen('profile')} />
         <div className="p-4">
           <div className="mb-4">
             <div className="relative">
@@ -2451,8 +2448,7 @@ if (currentScreen === 'navigation' && selectedResource) {
 
   if (currentScreen === 'eventCodes') {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header title="Event Codes" onBack={() => setCurrentScreen('profile')} />
+      <div className="min-h-screen" style={{ backgroundColor: '#F8FAB4' }}>        <Header title="Event Codes" onBack={() => setCurrentScreen('profile')} />
         <div className="p-4 pb-24">
           <div className="mb-4">
             <div className="relative">
@@ -2523,8 +2519,7 @@ if (currentScreen === 'navigation' && selectedResource) {
 
 
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header
+      <div className="min-h-screen" style={{ backgroundColor: '#F8FAB4' }}>        <Header
           title="Event Details"
           onBack={() => setCurrentScreen("createdEvents")}
         />
@@ -3218,8 +3213,7 @@ if (currentScreen === 'navigation' && selectedResource) {
   if (currentScreen === 'createEvent') {
     return (
       <>
-      <div className="min-h-screen bg-gray-50">
-        <Header title="Create Event" onBack={() => setCurrentScreen('home')} />
+      <div className="min-h-screen" style={{ backgroundColor: '#F8FAB4' }}>        <Header title="Create Event" onBack={() => setCurrentScreen('home')} />
         <div className="p-4 space-y-4 pb-24">
           <div className="bg-white rounded-2xl p-4 space-y-4">
             <div>
@@ -3507,8 +3501,7 @@ if (currentScreen === 'navigation' && selectedResource) {
   
   if (currentScreen === 'editEvent' && editingEvent) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header title="Edit Event" onBack={() => {
+  <div className="min-h-screen" style={{ backgroundColor: '#F8FAB4' }}>        <Header title="Edit Event" onBack={() => {
           setEditingEvent(null);
           setCurrentScreen('eventDetail');
         }} />
@@ -3594,8 +3587,7 @@ if (currentScreen === 'navigation' && selectedResource) {
   
   if (currentScreen === 'createdEvents') {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header title="Active Events" onBack={() => setCurrentScreen('home')} />
+<     div className="min-h-screen" style={{ backgroundColor: '#F8FAB4' }}>        <Header title="Active Events" onBack={() => setCurrentScreen('home')} />
         <div className="h-64">
           <MapContainer 
             center={[userLocation.lat, userLocation.lng]} 
@@ -3906,8 +3898,7 @@ if (currentScreen === 'navigation' && selectedResource) {
 
   if (currentScreen === 'feedback') {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header title="Feedback & Community" onBack={() => setCurrentScreen('profile')} />
+    <div className="min-h-screen" style={{ backgroundColor: '#F8FAB4' }}>        <Header title="Feedback & Community" onBack={() => setCurrentScreen('profile')} />
         <div className="p-4 pb-24">
           <div className="bg-white rounded-2xl p-6 mb-4">
             <h2 className="text-xl font-bold mb-4">Share Your Feedback</h2>
@@ -3956,8 +3947,7 @@ if (currentScreen === 'navigation' && selectedResource) {
 
   if (currentScreen === 'notifications') {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header title="Notification Settings" onBack={() => setCurrentScreen('profile')} />
+<div className="min-h-screen" style={{ backgroundColor: '#F8FAB4' }}>        <Header title="Notification Settings" onBack={() => setCurrentScreen('profile')} />
         <div className="p-4 pb-24">
           <div className="bg-white rounded-2xl p-6 mb-4">
             <div className="text-center mb-6">
@@ -4024,8 +4014,7 @@ if (currentScreen === 'navigation' && selectedResource) {
 
   if (currentScreen === 'cpr') {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header title="CPR for Adults" onBack={() => setCurrentScreen('profile')} />
+<div className="min-h-screen" style={{ backgroundColor: '#F8FAB4' }}>        <Header title="CPR for Adults" onBack={() => setCurrentScreen('profile')} />
         <div className="p-4 space-y-6 pb-24">
           <div className="bg-white rounded-2xl p-6">
             <h2 className="font-bold text-xl mb-4">CPR Instructions</h2>
