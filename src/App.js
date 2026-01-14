@@ -1807,7 +1807,9 @@ if (currentScreen === 'home') {
         <button
           onClick={() => setCurrentScreen('requestForm')}
           className="w-full bg-white rounded-3xl shadow-lg p-6 flex items-center justify-between hover:shadow-xl transition-all"
-        >
+        style={{ backgroundColor: '#FAEB92' }}
+
+		>
           <div className="flex items-center gap-5">
             <div className="bg-blue-50 p-4 rounded-2xl">
               <Edit className="w-8 h-8 text-blue-600" />
@@ -1823,7 +1825,9 @@ if (currentScreen === 'home') {
         <button
           onClick={() => setCurrentScreen('requestList')}
           className="w-full bg-white rounded-3xl shadow-lg p-6 flex items-center justify-between hover:shadow-xl transition-all"
-        >
+        style={{ backgroundColor: '#B0FFFA' }}
+
+		>
           <div className="flex items-center gap-5">
             <div className="bg-purple-50 p-4 rounded-2xl">
               <Users className="w-8 h-8 text-purple-600" />
@@ -4328,3 +4332,4 @@ const AudioBubble = ({ url, isMine }) => {
 };
 
 export default App;
+
